@@ -2,7 +2,7 @@
 
 A free web app that lists real football fixtures and, in later steps, produces source-backed match research and statistical predictions. Nothing is invented: when data is missing, the app says so.
 
-**Status:** step 1 done. The homepage lists real fixtures for any date from football-data.org once an API key is added. "Deep Analyze" is not built yet.
+**Status:** the homepage lists real fixtures for any date, and "Deep Analyze" builds a report for a match: last 5/10/20 matches for both teams, head-to-head meetings, and a Poisson goals model (1X2, double chance, draw no bet, both teams to score, total and team goals, likely scores) with uncertainty ranges and a chronological accuracy check. Not yet built: half-time and corner models, injuries and news, saved analyses.
 
 See [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md) for which free data sources are used and their limits.
 
@@ -52,5 +52,5 @@ Each provider has an adapter in `shared/providers/` that converts its data into 
 
 ## What is tested and what is not
 
-- Tested: date and time zone logic, provider data normalization (missing fields, duplicates, statuses), team search, API error responses (missing key, bad date) on a local server.
+- Tested (28 unit tests): date and time zone logic, provider data normalization (missing fields, duplicates, statuses), team search, form windows, the goals model (complementary markets sum to 100%, determinism, no lookahead in training or backtesting), and the data path whitelist. The API error responses were checked on a local server, and the analysis page was checked end to end in a browser with simulated API responses.
 - **Not tested yet:** live calls to football-data.org. The build environment cannot reach it. This needs your key and the deployed site.

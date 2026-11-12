@@ -3,6 +3,7 @@ import type { ApiError, Fixture, FixturesResponse } from '../shared/types';
 import { DEFAULT_TIME_ZONE, addDays, formatKickoff, todayIn } from '../shared/time';
 import { fetchFixtures } from './api';
 import { teamMatches } from './search';
+import AnalysisView from './analysis/AnalysisView';
 
 const TIME_ZONES = [DEFAULT_TIME_ZONE, 'UTC', 'Europe/London', 'Europe/Paris', 'Europe/Madrid', 'America/Sao_Paulo', 'Asia/Dubai'];
 
@@ -31,8 +32,25 @@ const STATUS_STYLE: Record<Fixture['status'], string> = {
   unknown: 'bg-slate-700 text-slate-300',
 };
 
+function useHashRoute(): [string, (h: string) => void] {
+  const [hash, setHash] = useState(() => window.location.hash);
+  useEffect(() => {
+    const on = () => setHash(window.location.hash);
+    window.addEventListener('hashchange', on);
+    return () => window.removeEventListener('hashchange', on);
+  }, []);
+  return [hash, (h) => { window.location.hash = h; }];
+}
+
 export default function App() {
+  const [hash, go] = useHashRoute();
   const [tz, setTz] = useState(DEFAULT_TIME_ZONE);
+  const match = /^#\/match\/(fd:\d+)$/.exec(hash);
+  if (match) return <AnalysisView matchId={match[1]!} tz={tz} onBack={() => go('')} />;
+  return <Home tz={tz} setTz={setTz} onAnalyze={(id) => go(`/match/${id}`)} />;
+}
+
+function Home({ tz, setTz, onAnalyze }: { tz: string; setTz: (t: string) => void; onAnalyze: (id: string) => void }) {
   const today = todayIn(tz);
   const [date, setDate] = useState(today);
   const [query, setQuery] = useState('');
@@ -147,7 +165,7 @@ export default function App() {
               <section key={name} className="mb-5">
                 <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">{name}</h2>
                 <ul className="divide-y divide-slate-800 overflow-hidden rounded-lg bg-slate-900">
-                  {list.map((f) => <FixtureRow key={f.id} f={f} tz={tz} />)}
+                  {list.map((f) => <FixtureRow key={f.id} f={f} tz={tz} onAnalyze={onAnalyze} />)}
                 </ul>
               </section>
             ))
@@ -162,7 +180,7 @@ export default function App() {
   );
 }
 
-function FixtureRow({ f, tz }: { f: Fixture; tz: string }) {
+function FixtureRow({ f, tz, onAnalyze }: { f: Fixture; tz: string; onAnalyze: (id: string) => void }) {
   const showScore = (f.status === 'live' || f.status === 'finished') && f.fullTime;
   return (
     <li className="flex items-center gap-3 px-3 py-3">
@@ -172,9 +190,9 @@ function FixtureRow({ f, tz }: { f: Fixture; tz: string }) {
         <TeamLine name={f.away.shortName ?? f.away.name} crest={f.away.crestUrl} score={showScore ? f.fullTime?.away : undefined} />
       </div>
       <span className={`shrink-0 rounded px-2 py-0.5 text-xs ${STATUS_STYLE[f.status]}`}>{STATUS_LABEL[f.status]}</span>
-      <button disabled title="Deep Analyze arrives in step 3"
-        className="hidden shrink-0 cursor-not-allowed rounded-md bg-slate-800 px-3 py-1.5 text-xs text-slate-500 sm:block">
-        Deep Analyze (soon)
+      <button onClick={() => onAnalyze(f.id)}
+        className="shrink-0 rounded-md bg-sky-700 px-2 py-1.5 text-xs font-semibold text-white hover:bg-sky-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-300">
+        Deep Analyze
       </button>
     </li>
   );

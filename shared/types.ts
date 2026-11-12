@@ -44,6 +44,7 @@ export interface Fixture {
   fullTime?: ScorePair;
   halfTime?: ScorePair;
   matchday?: number;
+  seasonStartYear?: number;
 }
 
 export type ProviderId = 'football-data.org';

@@ -18,6 +18,7 @@ export interface FdMatch {
   utcDate?: string;
   status?: string;
   matchday?: number | null;
+  season?: { startDate?: string };
   competition?: { id?: number; name?: string; code?: string; emblem?: string };
   area?: { name?: string };
   homeTeam?: FdTeam;
@@ -87,6 +88,7 @@ export function normalizeMatch(m: FdMatch): Fixture | null {
     home: team(m.homeTeam),
     away: team(m.awayTeam),
     matchday: m.matchday ?? undefined,
+    seasonStartYear: m.season?.startDate ? Number(m.season.startDate.slice(0, 4)) : undefined,
   };
   // Scores only make sense once a match has started.
   if (status === 'live' || status === 'finished') {
