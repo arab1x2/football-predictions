@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { STAGES, runAnalysis, type Analysis, type Stage, type StageId, type StageStatus } from './run';
 import { buildReport } from './report';
+import Picks from './Picks';
 import { formatKickoff, localDateOf } from '../../shared/time';
 import type { ApiError } from '../../shared/types';
 import type { TeamMatchView } from '../../shared/stats';
@@ -10,13 +11,13 @@ const ICON: Record<StageStatus, string> = { pending: '○', running: '…', done
 const COLOR: Record<StageStatus, string> = {
   pending: 'text-slate-500', running: 'text-sky-300', done: 'text-emerald-300', partial: 'text-amber-300', failed: 'text-red-300', skipped: 'text-slate-400',
 };
-const TABS = ['Report', 'Markets', 'Form', 'Head-to-head', 'Method & sources'] as const;
+const TABS = ['Report', 'All markets', 'Form', 'Head-to-head', 'Method & sources'] as const;
 
 export default function AnalysisView({ matchId, tz, onBack }: { matchId: string; tz: string; onBack: () => void }) {
   const [stages, setStages] = useState<Stage[]>(STAGES.map((s) => ({ ...s })));
   const [result, setResult] = useState<Analysis | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
-  const [tab, setTab] = useState<(typeof TABS)[number]>('Report');
+  const [tab, setTab] = useState<(typeof TABS)[number] | null>(null);
   const [run, setRun] = useState(0);
 
   useEffect(() => {
@@ -50,8 +51,8 @@ export default function AnalysisView({ matchId, tz, onBack }: { matchId: string;
         </header>
       )}
 
-      <section aria-label="Research progress" className="mb-5 rounded-lg bg-slate-900 p-3">
-        <h2 className="mb-2 text-sm font-semibold text-slate-300">Research steps</h2>
+      <details open={!result} aria-label="Research progress" className="mb-5 rounded-lg bg-slate-900 p-3">
+        <summary className="cursor-pointer text-sm font-semibold text-slate-300">{result ? 'Research steps (done)' : 'Researching…'}</summary>
         <ol className="space-y-1 text-sm">
           {stages.map((s) => (
             <li key={s.id} className="flex gap-2">
@@ -61,21 +62,23 @@ export default function AnalysisView({ matchId, tz, onBack }: { matchId: string;
             </li>
           ))}
         </ol>
-      </section>
+      </details>
 
       {error && <div role="alert" className="rounded-lg border border-red-800 bg-red-950/50 p-4 text-red-200">{error.message}</div>}
 
       {result && (
         <>
+          <Picks a={result} />
           {result.model && <OneXTwo a={result} />}
+          <p className="mb-2 text-sm text-slate-400">More details (optional):</p>
           <div role="tablist" className="mb-3 flex flex-wrap gap-1">
             {TABS.map((t) => (
-              <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)}
+              <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(tab === t ? null : t)}
                 className={`rounded-md px-3 py-1.5 text-sm ${tab === t ? 'bg-sky-600 text-white' : 'bg-slate-800 hover:bg-slate-700'}`}>{t}</button>
             ))}
           </div>
           {tab === 'Report' && <Report a={result} />}
-          {tab === 'Markets' && <Markets a={result} />}
+          {tab === 'All markets' && <Markets a={result} />}
           {tab === 'Form' && <Form a={result} tz={tz} />}
           {tab === 'Head-to-head' && <H2H a={result} tz={tz} />}
           {tab === 'Method & sources' && <Method a={result} tz={tz} />}
