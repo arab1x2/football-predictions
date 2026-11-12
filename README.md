@@ -29,6 +29,16 @@ See [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md) for which free data sources are
 
 The key stays on Cloudflare's servers. It is never sent to visitors' browsers and must never be put in the code.
 
+## Bookmaker odds (optional, free)
+
+The match page can compare the model with real bookmaker prices from The Odds API, a licensed odds feed. It does not scrape betting websites.
+
+1. Get a free key at https://the-odds-api.com (free plan: 500 credits per month). The key arrives by email.
+2. In Cloudflare, open your Worker, then **Settings**, then **Variables and Secrets**, and add a **Secret** named `ODDS_API_KEY` with that key.
+3. Open any upcoming match and click **Load bookmaker odds**.
+
+Loading odds for a league costs 2 credits and is then kept for 12 hours. Markets covered: match result and total goals. If the app cannot identify the match in the bookmaker list with certainty, it shows nothing rather than risk the wrong match.
+
 ## For developers
 
 ```bash
@@ -52,4 +62,4 @@ Each provider has an adapter in `shared/providers/` that converts its data into 
 ## What is tested and what is not
 
 - Tested (28 unit tests): date and time zone logic, provider data normalization (missing fields, duplicates, statuses), team search, form windows, the goals model (complementary markets sum to 100%, determinism, no lookahead in training or backtesting), and the data path whitelist. The API error responses were checked on a local server, and the analysis page was checked end to end in a browser with simulated API responses.
-- **Not tested yet:** live calls to football-data.org. The build environment cannot reach it. This needs your key and the deployed site.
+- **Not tested with live data from the build environment:** the bookmaker odds feed. The build environment cannot reach it; its adapter was written from the official documentation and tested with sample responses. The football-data.org connection was confirmed working on the deployed site.

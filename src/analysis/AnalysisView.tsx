@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { STAGES, runAnalysis, type Analysis, type Stage, type StageId, type StageStatus } from './run';
 import { buildReport } from './report';
 import Picks from './Picks';
+import OddsPanel from './OddsPanel';
 import { formatKickoff, localDateOf } from '../../shared/time';
 import type { ApiError } from '../../shared/types';
 import type { TeamMatchView } from '../../shared/stats';
@@ -69,6 +70,7 @@ export default function AnalysisView({ matchId, tz, onBack }: { matchId: string;
       {result && (
         <>
           <Picks a={result} />
+          <OddsPanel a={result} />
           {result.model && <OneXTwo a={result} />}
           <p className="mb-2 text-sm text-slate-400">More details (optional):</p>
           <div role="tablist" className="mb-3 flex flex-wrap gap-1">
