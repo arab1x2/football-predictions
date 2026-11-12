@@ -47,7 +47,9 @@ export function buildReport(a: Analysis): ReportSection[] {
     paragraphs: [
       hh.htN ? `${H}: over ${hh.htN} matches with a half-time score, ${hh.htGf} goals scored in first halves and ${hh.secondHalfGf} in second halves.` : `${H}: no half-time scores available.`,
       ah.htN ? `${A}: over ${ah.htN} matches with a half-time score, ${ah.htGf} goals scored in first halves and ${ah.secondHalfGf} in second halves.` : `${A}: no half-time scores available.`,
-      'Half-time market probabilities are not produced yet; they need their own fitted model.',
+      a.model?.halves
+        ? `Model expected goals: first half ${H} ${a.model.halves.xgFirst.home.toFixed(2)}, ${A} ${a.model.halves.xgFirst.away.toFixed(2)}; second half ${H} ${a.model.halves.xgSecond.home.toFixed(2)}, ${A} ${a.model.halves.xgSecond.away.toFixed(2)} (separate models fitted on ${a.model.halves.nMatches} league matches with real half-time scores).`
+        : `Half markets are not shown: ${a.model?.halvesUnavailableReason ?? 'the model is not available for this match.'}`,
     ],
   });
 
@@ -74,8 +76,8 @@ export function buildReport(a: Analysis): ReportSection[] {
     paragraphs: ['No verified injury or lineup data is connected yet. That is not the same as "no injuries". Check official club channels before relying on any prediction.'],
   });
   sections.push({
-    title: 'Corners and xG',
-    paragraphs: ['The free football-data.org plan does not provide corners, shots or xG, so these are not shown and not estimated.'],
+    title: 'Corners, cards, penalties and xG',
+    paragraphs: ['The free football-data.org plan does not provide corners, cards, penalties, shots or xG, so these are not shown and not estimated.'],
   });
 
   if (a.model) {

@@ -16,7 +16,7 @@ function Chip({ p, title }: { p?: Pick; title?: string }) {
   return (
     <span className={`inline-flex flex-col rounded-md border px-2 py-1 text-xs leading-tight ${STYLE[p.strength]}`}>
       <span className="opacity-75">{title ?? p.market}</span>
-      <span className="font-semibold">{p.pick} · {Math.round(p.p * 100)}%</span>
+      <span className="font-semibold">{p.pick} · {Math.round(p.p * 100)}% <span className="font-normal opacity-70">@{(1 / p.p).toFixed(2)}</span></span>
     </span>
   );
 }
@@ -89,7 +89,7 @@ export default function DayPicksView({ fixtures, tz, onAnalyze }: { fixtures: Fi
         })}
       </ul>
       <p className="mt-3 text-xs text-slate-500">
-        Green = Strong (75%+), blue = Good (62%+). Model chances from league goals only; injuries and lineups are not included. Nothing is ever 100% sure.
+        Green = Strong (75%+), blue = Good (62%+). The number after @ is the fair odds (1 ÷ chance). Model chances from league goals only; injuries and lineups are not included. Nothing is ever 100% sure.
       </p>
     </section>
   );

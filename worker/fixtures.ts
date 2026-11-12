@@ -7,7 +7,7 @@ import { filterToLocalDate, utcQueryWindow } from '../shared/fixturesForDate';
 
 import type { Env } from './env';
 
-const CACHE_SECONDS = 120; // keeps us well under the free 10 requests/minute
+const CACHE_SECONDS = 60; // at most 1 provider request per minute for the list (free limit: 10/minute)
 const TIMEOUT_MS = 10_000;
 
 function json(body: unknown, status = 200, extraHeaders: Record<string, string> = {}): Response {
@@ -105,5 +105,5 @@ export async function handleFixtures(request: Request, env: Env, ctx: ExecutionC
       fromCache,
     },
   };
-  return json(body, 200, { 'cache-control': 'public, max-age=60' });
+  return json(body, 200, { 'cache-control': 'public, max-age=30' });
 }

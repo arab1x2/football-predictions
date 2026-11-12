@@ -80,3 +80,48 @@ describe('no lookahead', () => {
     expect(full.nPredicted).toBe(rows.length - 40);
   });
 });
+
+import { toTrainingHalf, halfMarkets, halvesFor } from '../shared/model/halves';
+
+describe('half models', () => {
+  const mk = (id: number, day: number, h: string, a: string, ft: [number, number], ht?: [number, number]): Fixture => ({
+    id: `fd:${id}`, provider: 'football-data.org', kickoffUtc: new Date(Date.UTC(2026, 0, 1) + day * 86_400_000).toISOString(),
+    status: 'finished', rawStatus: 'FINISHED', competition: { id: 'c', name: 'c' },
+    home: { id: h, name: h }, away: { id: a, name: a },
+    fullTime: { home: ft[0], away: ft[1] }, halfTime: ht ? { home: ht[0], away: ht[1] } : undefined,
+  });
+  const asOf = '2027-01-01T00:00:00Z';
+
+  it('uses only matches with a real half-time score, and splits halves correctly', () => {
+    const list = [mk(1, 1, 'A', 'B', [3, 1], [1, 0]), mk(2, 2, 'A', 'B', [2, 2]), mk(3, 3, 'A', 'B', [1, 0], [2, 0])];
+    expect(toTrainingHalf(list, asOf, 'first').map((r) => [r.hg, r.ag])).toEqual([[1, 0], [2, 0]]);
+    // match 3 is inconsistent (2 at half time, 1 at full time) and is dropped for the second half
+    expect(toTrainingHalf(list, asOf, 'second').map((r) => [r.hg, r.ag])).toEqual([[2, 1]]);
+  });
+
+  it('has complementary half markets summing to 100%', () => {
+    for (const line of halfMarkets(scoreMatrix(0.6, 0.4), '1st half', 'H', 'A')) {
+      expect(line.outcomes.reduce((s, o) => s + o.p, 0)).toBeCloseTo(1, 9);
+    }
+  });
+
+  it('refuses to predict without enough half-time data', () => {
+    const noHt = Array.from({ length: 60 }, (_, i) => mk(i, i, i % 2 ? 'A' : 'B', i % 2 ? 'B' : 'A', [1, 1]));
+    const r = halvesFor(noHt, asOf, 'A', 'B', 'A', 'B', 40, 6);
+    expect(r.ok).toBe(false);
+  });
+
+  it('predicts fewer goals per half than a full match would have', () => {
+    const teams = ['A', 'B', 'C', 'D'];
+    const list: Fixture[] = [];
+    let id = 0;
+    for (let r = 0; r < 5; r++) for (const h of teams) for (const a of teams) if (h !== a) list.push(mk(id, id++, h, a, [2, 1], [1, 0]));
+    const r = halvesFor(list, asOf, 'A', 'B', 'A', 'B', 40, 6);
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.halves.xgFirst.home + r.halves.xgFirst.away).toBeLessThan(2);
+      expect(r.halves.markets.find((m) => m.market === '1st half goals 0.5')).toBeDefined();
+      expect(r.halves.markets.find((m) => m.market === '2nd half goals 1.5')).toBeDefined();
+    }
+  });
+});

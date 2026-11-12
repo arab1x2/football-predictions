@@ -72,6 +72,19 @@ function Home({ tz, setTz, onAnalyze }: { tz: string; setTz: (t: string) => void
     };
   }, [date, tz, reloadKey]);
 
+  // Today's list refreshes quietly every minute while the tab is visible.
+  // (The free data plan allows 10 requests per minute, so not faster.)
+  useEffect(() => {
+    if (date !== today) return;
+    const id = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      fetchFixtures(date, tz).then((r) => {
+        if (r.ok) setState((prev) => (prev.kind === 'ready' && prev.data.date === r.data.date && prev.data.timeZone === r.data.timeZone ? { kind: 'ready', data: r.data } : prev));
+      });
+    }, 60_000);
+    return () => clearInterval(id);
+  }, [date, tz, today]);
+
   const fixtures = state.kind === 'ready' ? state.data.fixtures : [];
   const leagues = useMemo(
     () => [...new Map(fixtures.map((f) => [f.competition.id, f.competition.name])).entries()],
@@ -184,7 +197,7 @@ function Home({ tz, setTz, onAnalyze }: { tz: string; setTz: (t: string) => void
             ))
           )}
           <footer className="mt-6 rounded-lg bg-slate-900 p-3 text-xs text-slate-400">
-            <p>Source: {state.data.source.provider} · retrieved {new Date(state.data.source.retrievedAt).toLocaleString('en-GB', { timeZone: tz })} ({tz}){state.data.source.fromCache ? ' · cached' : ''}</p>
+            <p>Source: {state.data.source.provider} · retrieved {new Date(state.data.source.retrievedAt).toLocaleString('en-GB', { timeZone: tz })} ({tz}){state.data.source.fromCache ? ' · cached' : ''}{date === today ? ' · refreshes every minute' : ''}</p>
             <p className="mt-1">Coverage: {state.data.source.coverage}</p>
           </footer>
         </>

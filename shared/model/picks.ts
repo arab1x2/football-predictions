@@ -6,6 +6,11 @@ import type { MarketLine } from './markets';
 export type Strength = 'strong' | 'good' | 'lean' | 'coin-flip';
 export interface Pick { market: string; pick: string; p: number; strength: Strength }
 
+/** Odds at which a bet would break even if the model's chance were exactly right. */
+export function fairOdds(p: number): number {
+  return 1 / p;
+}
+
 export function strengthOf(p: number): Strength {
   if (p >= 0.75) return 'strong';
   if (p >= 0.62) return 'good';
@@ -18,6 +23,11 @@ const KEY_MARKETS: { market: string; title: string }[] = [
   { market: 'Total goals 2.5', title: 'Goals 2.5' },
   { market: 'Total goals 3.5', title: 'Goals 3.5' },
   { market: 'Both teams to score', title: 'Both teams score' },
+  { market: '1st half goals 0.5', title: '1st half goals 0.5' },
+  { market: '1st half goals 1.5', title: '1st half goals 1.5' },
+  { market: '2nd half goals 0.5', title: '2nd half goals 0.5' },
+  { market: '2nd half goals 1.5', title: '2nd half goals 1.5' },
+  { market: '1st half result', title: '1st half result' },
 ];
 
 export function buildPicks(markets: MarketLine[]): { result: Pick; doubleChance: Pick; picks: Pick[] } {

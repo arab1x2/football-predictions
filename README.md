@@ -2,7 +2,7 @@
 
 A free web app that lists real football fixtures and, in later steps, produces source-backed match research and statistical predictions. Nothing is invented: when data is missing, the app says so.
 
-**Status:** the homepage lists real fixtures for any date, and "Deep Analyze" builds a report for a match: last 5/10/20 matches for both teams, head-to-head meetings, and a Poisson goals model (1X2, double chance, draw no bet, both teams to score, total and team goals, likely scores) with uncertainty ranges and a chronological accuracy check. Not yet built: half-time and corner models, injuries and news, saved analyses.
+**Status:** the homepage lists real fixtures for any date, and "Deep Analyze" builds a report for a match: last 5/10/20 matches for both teams, head-to-head meetings, and a Poisson goals model (1X2, double chance, draw no bet, both teams to score, total and team goals, likely scores) with uncertainty ranges and a chronological accuracy check. The homepage opens on "Picks of the day" (picks for every upcoming match, with fair odds) and refreshes today's list every minute. First-half and second-half markets come from separate models fitted on real half scores. Not yet built: corners, cards and penalties (the free data source does not provide them), injuries and news, saved analyses.
 
 See [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md) for which free data sources are used and their limits.
 

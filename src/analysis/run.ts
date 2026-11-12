@@ -6,6 +6,7 @@ import { teamHistory, type TeamMatchView } from '../../shared/stats';
 import { fitPoisson, toTraining, expectedGoals, scoreMatrix, type PoissonFit } from '../../shared/model/poisson';
 import { marketsFromMatrix, topScorelines, type MarketLine } from '../../shared/model/markets';
 import { backtest, bootstrap1x2, type BacktestResult } from '../../shared/model/backtest';
+import { halvesFor, toTrainingHalf, type HalvesOutput } from '../../shared/model/halves';
 
 export type StageId = 'fixture' | 'homeHistory' | 'awayHistory' | 'h2h' | 'league' | 'model' | 'report';
 export type StageStatus = 'pending' | 'running' | 'done' | 'partial' | 'failed' | 'skipped';
@@ -47,6 +48,10 @@ export interface ModelOutput {
   backtest: BacktestResult | null;
   homeSample: number;
   awaySample: number;
+  /** Present only when enough matches have real half-time scores. */
+  halves: HalvesOutput | null;
+  halvesUnavailableReason?: string;
+  halfBacktest: BacktestResult | null;
 }
 
 export interface Analysis {
@@ -140,11 +145,19 @@ export async function runAnalysis(matchId: string, update: Update): Promise<{ ok
     const range1x2 = bootstrap1x2(rows, before, fixture.home.id, fixture.away.id);
     await yieldToUi();
     const bt = backtest(rows);
+    await yieldToUi();
+    const hName = fixture.home.shortName ?? fixture.home.name;
+    const aName = fixture.away.shortName ?? fixture.away.name;
+    const hv = halvesFor(leagueFixtures, before, fixture.home.id, fixture.away.id, hName, aName, MIN_LEAGUE_MATCHES, MIN_TEAM_MATCHES);
+    const halfBacktest = hv.ok ? backtest(toTrainingHalf(leagueFixtures, before, 'first')) : null;
     model = {
       fit, xg,
-      markets: marketsFromMatrix(matrix, fixture.home.shortName ?? fixture.home.name, fixture.away.shortName ?? fixture.away.name),
+      markets: [...marketsFromMatrix(matrix, hName, aName), ...(hv.ok ? hv.halves.markets : [])],
       scorelines: topScorelines(matrix),
       range1x2, backtest: bt, homeSample, awaySample,
+      halves: hv.ok ? hv.halves : null,
+      halvesUnavailableReason: hv.ok ? undefined : hv.reason,
+      halfBacktest,
     };
     update('model', 'done', `Fitted on ${rows.length} league matches`);
   } else {

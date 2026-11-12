@@ -1,5 +1,5 @@
 import type { Analysis } from './run';
-import { buildPicks, type Pick, type Strength } from '../../shared/model/picks';
+import { buildPicks, fairOdds, type Pick, type Strength } from '../../shared/model/picks';
 
 const STYLE: Record<Strength, string> = {
   strong: 'border-emerald-500 bg-emerald-950/60 text-emerald-200',
@@ -16,7 +16,7 @@ function Card({ p, big }: { p: Pick; big?: boolean }) {
       <div className={`font-bold ${big ? 'text-xl' : 'text-base'}`}>{p.pick}</div>
       <div className="flex items-baseline justify-between">
         <span className={`font-semibold tabular-nums ${big ? 'text-2xl' : 'text-lg'}`}>{Math.round(p.p * 100)}%</span>
-        <span className="text-xs opacity-80">{LABEL[p.strength]}</span>
+        <span className="text-right text-xs opacity-80">{LABEL[p.strength]}<br />fair odds {fairOdds(p.p).toFixed(2)}</span>
       </div>
     </div>
   );
@@ -44,7 +44,7 @@ export default function Picks({ a }: { a: Analysis }) {
         {picks.map((p) => <Card key={p.market} p={p} />)}
       </div>
       <p className="mt-2 text-xs text-slate-500">
-        Percentages are the model's chance for each pick, from goals in this league only. Injuries and lineups are not included. Nothing is ever 100% sure.
+        Percentages are the model's chance for each pick, from goals in this league only. Fair odds = 1 ÷ chance: a bookmaker price above it would be good value if the model is right. Injuries and lineups are not included. Nothing is ever 100% sure.
       </p>
     </section>
   );

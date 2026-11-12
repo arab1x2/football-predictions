@@ -129,12 +129,12 @@ function Markets({ a }: { a: Analysis }) {
     <div className="space-y-4">
       <div className="overflow-x-auto rounded-lg bg-slate-900">
         <table className="w-full text-sm">
-          <thead className="text-left text-xs text-slate-400"><tr><th className="p-2">Market</th><th className="p-2">Outcomes</th><th className="p-2 text-right">Sum</th></tr></thead>
+          <thead className="text-left text-xs text-slate-400"><tr><th className="p-2">Market</th><th className="p-2">Outcomes (chance · fair odds)</th><th className="p-2 text-right">Sum</th></tr></thead>
           <tbody>
             {a.model.markets.map((m) => (
               <tr key={m.market} className="border-t border-slate-800">
                 <td className="p-2">{m.market}</td>
-                <td className="p-2">{m.outcomes.map((o) => `${o.label} ${pct(o.p)}`).join(' · ')}</td>
+                <td className="p-2">{m.outcomes.map((o) => `${o.label} ${pct(o.p)} (${o.p > 0.001 ? (1 / o.p).toFixed(2) : '–'})`).join('  ·  ')}</td>
                 <td className="p-2 text-right tabular-nums text-slate-500">{pct(m.outcomes.reduce((s, o) => s + o.p, 0))}</td>
               </tr>
             ))}
@@ -147,7 +147,7 @@ function Markets({ a }: { a: Analysis }) {
           {a.model.scorelines.map((s) => <li key={`${s.home}-${s.away}`} className="rounded bg-slate-800 p-2 text-center"><div className="font-semibold">{s.home}–{s.away}</div><div className="text-xs text-slate-400">{pct(s.p)}</div></li>)}
         </ul>
       </section>
-      <p className="text-xs text-slate-500">Half-time and corner markets are not shown: they need data or models not yet available.</p>
+      <p className="text-xs text-slate-500">Fair odds = 1 ÷ chance: the odds at which a bet would only break even if the model were exactly right. {a.model.halves ? '' : `Half markets are not shown: ${a.model.halvesUnavailableReason}. `}Corners, cards and penalties are not shown: the free data source does not provide them.</p>
     </div>
   );
 }
@@ -220,7 +220,8 @@ function Method({ a, tz }: { a: Analysis; tz: string }) {
     <div className="space-y-4 text-sm">
       <section className="rounded-lg bg-slate-900 p-4 text-slate-300">
         <h3 className="mb-2 font-semibold text-slate-100">Method</h3>
-        <p>Model {m?.fit.version ?? 'poisson-0.1'}: Poisson goals model with home advantage, attack and defence strength per team, fitted on this competition's finished matches before kickoff (current and previous season when available). Older matches count less (half-life {m?.fit.options.halfLifeDays ?? 180} days), and every team is pulled toward the league average to avoid overreacting to small samples. These settings are starting choices, not yet tuned by backtesting.</p>
+        <p>Model {m?.fit.version ?? 'poisson-0.1'}: Poisson goals model with home advantage, attack and defence strength per team, fitted on this competition's finished matches before kickoff (current and previous season when available). Older matches count less (half-life {m?.fit.options.halfLifeDays ?? 180} days), and every team is pulled toward the league average to avoid overreacting to small samples. These settings are starting choices, not yet tuned by backtesting. First-half and second-half markets come from two separate models of the same kind, fitted on real half scores.</p>
+        {m?.halfBacktest && <p className="mt-2">First-half result check on {m.halfBacktest.nPredicted} matches: Brier {m.halfBacktest.modelBrier.toFixed(3)} vs baseline {m.halfBacktest.baselineBrier.toFixed(3)}.</p>}
         {m?.backtest && (
           <div className="mt-3">
             <p>Chronological check on {m.backtest.nPredicted} league matches (each predicted only from earlier matches): Brier {m.backtest.modelBrier.toFixed(3)} vs baseline {m.backtest.baselineBrier.toFixed(3)}; log loss {m.backtest.modelLogLoss.toFixed(3)} vs {m.backtest.baselineLogLoss.toFixed(3)}. Lower is better.</p>
@@ -245,7 +246,7 @@ function Method({ a, tz }: { a: Analysis; tz: string }) {
             <ul className="space-y-1">{a.failures.map((x) => <li key={x.label} className="text-amber-200">{x.label}: {x.error.message}</li>)}</ul>
           </>
         )}
-        <p className="mt-3 text-xs text-slate-500">Not connected yet: injuries, lineups, news, corners, shots, xG.</p>
+        <p className="mt-3 text-xs text-slate-500">Not connected yet: injuries, lineups, news, corners, cards, penalties, shots, xG.</p>
       </section>
     </div>
   );

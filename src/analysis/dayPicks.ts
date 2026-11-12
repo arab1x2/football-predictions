@@ -7,7 +7,8 @@ import { fitPoisson, toTraining, expectedGoals, scoreMatrix } from '../../shared
 import { marketsFromMatrix } from '../../shared/model/markets';
 import { buildPicks, type Pick } from '../../shared/model/picks';
 import { fdGet } from './fd';
-import { modelBlocker, seasonYearOf } from './run';
+import { modelBlocker, seasonYearOf, MIN_LEAGUE_MATCHES, MIN_TEAM_MATCHES } from './run';
+import { toTrainingHalf, halfMarkets } from '../../shared/model/halves';
 
 export interface DayPick {
   fixture: Fixture;
@@ -50,13 +51,26 @@ export async function computeDayPicks(
     const asOf = list.map((f) => f.kickoffUtc).sort()[0]!;
     const rows = toTraining(league, asOf);
     const fit = rows.length ? fitPoisson(rows, asOf) : null;
+    // Half models, only when enough matches have a real half-time score.
+    const r1 = toTrainingHalf(league, asOf, 'first');
+    const r2 = toTrainingHalf(league, asOf, 'second');
+    const halvesOk = Math.min(r1.length, r2.length) >= MIN_LEAGUE_MATCHES;
+    const fit1 = halvesOk ? fitPoisson(r1, asOf) : null;
+    const fit2 = halvesOk ? fitPoisson(r2, asOf) : null;
     for (const f of list) {
       const hs = rows.filter((r) => r.home === f.home.id || r.away === f.home.id).length;
       const as = rows.filter((r) => r.home === f.away.id || r.away === f.away.id).length;
       const reason = !cur.ok && !prev.ok ? cur.error.message : modelBlocker(f, rows.length, hs, as);
       if (reason || !fit) { out.push({ fixture: f, reason: reason || 'No league data.' }); continue; }
       const xg = expectedGoals(fit, f.home.id, f.away.id);
-      const p = buildPicks(marketsFromMatrix(scoreMatrix(xg.home, xg.away), f.home.shortName ?? f.home.name, f.away.shortName ?? f.away.name));
+      const hn = f.home.shortName ?? f.home.name, an = f.away.shortName ?? f.away.name;
+      const lines = marketsFromMatrix(scoreMatrix(xg.home, xg.away), hn, an);
+      const halfN = (id: string) => r1.filter((r) => r.home === id || r.away === id).length;
+      if (fit1 && fit2 && halfN(f.home.id) >= MIN_TEAM_MATCHES && halfN(f.away.id) >= MIN_TEAM_MATCHES) {
+        const x1 = expectedGoals(fit1, f.home.id, f.away.id), x2 = expectedGoals(fit2, f.home.id, f.away.id);
+        lines.push(...halfMarkets(scoreMatrix(x1.home, x1.away), '1st half', hn, an), ...halfMarkets(scoreMatrix(x2.home, x2.away), '2nd half', hn, an));
+      }
+      const p = buildPicks(lines);
       const best = [p.result, p.doubleChance, ...p.picks].sort((x, y) => y.p - x.p)[0];
       out.push({ fixture: f, ...p, best });
     }
