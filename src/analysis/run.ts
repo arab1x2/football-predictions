@@ -24,6 +24,20 @@ export const STAGES: Stage[] = [
 export const MIN_LEAGUE_MATCHES = 40;
 export const MIN_TEAM_MATCHES = 6;
 
+/** Why the model must not be used for this match, or undefined if it can. */
+export function modelBlocker(fixture: Fixture, leagueRows: number, homeSample: number, awaySample: number): string | undefined {
+  if (fixture.status !== 'scheduled') return `This match is ${fixture.status}. Pre-match predictions are only produced for upcoming matches, so a known result never feeds the model.`;
+  if (leagueRows < MIN_LEAGUE_MATCHES) return `Not enough league results to fit the model (${leagueRows}; at least ${MIN_LEAGUE_MATCHES} needed).`;
+  if (homeSample < MIN_TEAM_MATCHES || awaySample < MIN_TEAM_MATCHES) return `Not enough matches in this competition for both teams (${fixture.home.name}: ${homeSample}, ${fixture.away.name}: ${awaySample}; at least ${MIN_TEAM_MATCHES} each needed).`;
+  return undefined;
+}
+
+export function seasonYearOf(fixture: Fixture): number {
+  if (fixture.seasonStartYear) return fixture.seasonStartYear;
+  const d = new Date(fixture.kickoffUtc);
+  return d.getUTCMonth() < 6 ? d.getUTCFullYear() - 1 : d.getUTCFullYear();
+}
+
 export interface ModelOutput {
   fit: PoissonFit;
   xg: { home: number; away: number };
@@ -95,7 +109,7 @@ export async function runAnalysis(matchId: string, update: Update): Promise<{ ok
   update('league', 'running');
   let leagueFixtures: Fixture[] = [];
   const code = fixture.competition.code;
-  const year = fixture.seasonStartYear ?? (() => { const d = new Date(before); return d.getUTCMonth() < 6 ? d.getUTCFullYear() - 1 : d.getUTCFullYear(); })();
+  const year = seasonYearOf(fixture);
   if (!code) {
     update('league', 'skipped', 'Competition code missing.');
   } else {
@@ -117,13 +131,7 @@ export async function runAnalysis(matchId: string, update: Update): Promise<{ ok
   const rows = toTraining(leagueFixtures, before);
   const homeSample = rows.filter((r) => r.home === fixture.home.id || r.away === fixture.home.id).length;
   const awaySample = rows.filter((r) => r.home === fixture.away.id || r.away === fixture.away.id).length;
-  if (fixture.status !== 'scheduled') {
-    modelUnavailableReason = `This match is ${fixture.status}. Pre-match predictions are only produced for upcoming matches, so a known result never feeds the model.`;
-  } else if (rows.length < MIN_LEAGUE_MATCHES) {
-    modelUnavailableReason = `Not enough league results to fit the model (${rows.length}; at least ${MIN_LEAGUE_MATCHES} needed).`;
-  } else if (homeSample < MIN_TEAM_MATCHES || awaySample < MIN_TEAM_MATCHES) {
-    modelUnavailableReason = `Not enough matches in this competition for both teams (${fixture.home.name}: ${homeSample}, ${fixture.away.name}: ${awaySample}; at least ${MIN_TEAM_MATCHES} each needed).`;
-  }
+  modelUnavailableReason = modelBlocker(fixture, rows.length, homeSample, awaySample);
   if (!modelUnavailableReason) {
     const fit = fitPoisson(rows, before);
     const xg = expectedGoals(fit, fixture.home.id, fixture.away.id);

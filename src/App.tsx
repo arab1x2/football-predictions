@@ -4,6 +4,7 @@ import { DEFAULT_TIME_ZONE, addDays, formatKickoff, todayIn } from '../shared/ti
 import { fetchFixtures } from './api';
 import { teamMatches } from './search';
 import AnalysisView from './analysis/AnalysisView';
+import DayPicksView from './analysis/DayPicksView';
 
 const TIME_ZONES = [DEFAULT_TIME_ZONE, 'UTC', 'Europe/London', 'Europe/Paris', 'Europe/Madrid', 'America/Sao_Paulo', 'Asia/Dubai'];
 
@@ -57,6 +58,7 @@ function Home({ tz, setTz, onAnalyze }: { tz: string; setTz: (t: string) => void
   const [league, setLeague] = useState('all');
   const [state, setState] = useState<State>({ kind: 'loading' });
   const [reloadKey, setReloadKey] = useState(0);
+  const [view, setView] = useState<'picks' | 'matches'>('picks');
 
   useEffect(() => {
     let cancelled = false;
@@ -141,6 +143,15 @@ function Home({ tz, setTz, onAnalyze }: { tz: string; setTz: (t: string) => void
         </label>
       </section>
 
+      <div className="mb-4 flex gap-1" role="tablist">
+        {(['picks', 'matches'] as const).map((v) => (
+          <button key={v} role="tab" aria-selected={view === v} onClick={() => setView(v)}
+            className={`rounded-md px-4 py-2 text-sm font-semibold ${view === v ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-200 hover:bg-slate-700'}`}>
+            {v === 'picks' ? 'Picks of the day' : 'All matches'}
+          </button>
+        ))}
+      </div>
+
       {state.kind === 'loading' && <p className="py-10 text-center text-slate-400" role="status">Loading fixtures…</p>}
 
       {state.kind === 'error' && (
@@ -156,7 +167,9 @@ function Home({ tz, setTz, onAnalyze }: { tz: string; setTz: (t: string) => void
 
       {state.kind === 'ready' && (
         <>
-          {fixtures.length === 0 ? (
+          {view === 'picks' && fixtures.length > 0 ? (
+            <DayPicksView fixtures={visible} tz={tz} onAnalyze={onAnalyze} />
+          ) : fixtures.length === 0 ? (
             <p className="py-10 text-center text-slate-400">No matches in the covered competitions on {date}.</p>
           ) : visible.length === 0 ? (
             <p className="py-10 text-center text-slate-400">No match fits your filters.</p>
