@@ -1,13 +1,11 @@
 // GET /api/fixtures?date=YYYY-MM-DD&tz=Africa/Casablanca
 // Server-side only: the API key never reaches the browser.
-import type { ApiError, FixturesResponse } from '../../shared/types';
-import { DEFAULT_TIME_ZONE, isValidDateString, isValidTimeZone, todayIn } from '../../shared/time';
-import { FOOTBALL_DATA_BASE, normalizeMatches, type FdMatch } from '../../shared/providers/footballData';
-import { filterToLocalDate, utcQueryWindow } from '../../shared/fixturesForDate';
+import type { ApiError, FixturesResponse } from '../shared/types';
+import { DEFAULT_TIME_ZONE, isValidDateString, isValidTimeZone, todayIn } from '../shared/time';
+import { FOOTBALL_DATA_BASE, normalizeMatches, type FdMatch } from '../shared/providers/footballData';
+import { filterToLocalDate, utcQueryWindow } from '../shared/fixturesForDate';
 
-interface Env {
-  FOOTBALL_DATA_API_KEY?: string;
-}
+import type { Env } from './env';
 
 const CACHE_SECONDS = 120; // keeps us well under the free 10 requests/minute
 const TIMEOUT_MS = 10_000;
@@ -25,7 +23,8 @@ function error(status: number, err: ApiError): Response {
   return json({ error: err }, status, headers);
 }
 
-export const onRequestGet: PagesFunction<Env> = async ({ request, env, waitUntil }) => {
+export async function handleFixtures(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  const waitUntil = (p: Promise<unknown>) => ctx.waitUntil(p);
   const url = new URL(request.url);
   const tz = url.searchParams.get('tz') ?? DEFAULT_TIME_ZONE;
   if (!isValidTimeZone(tz)) return error(400, { code: 'bad_request', message: `Unknown time zone: ${tz}` });
@@ -107,4 +106,4 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env, waitUntil
     },
   };
   return json(body, 200, { 'cache-control': 'public, max-age=60' });
-};
+}

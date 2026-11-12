@@ -1,13 +1,11 @@
 // GET /api/fd?path=<allowed football-data.org v4 path>
 // A narrow, cached, server-side gateway. Only whitelisted read-only paths are
 // accepted, so this cannot be used as an open proxy, and the key stays here.
-import type { ApiError } from '../../shared/types';
-import { FOOTBALL_DATA_BASE } from '../../shared/providers/footballData';
-import { checkFdPath } from '../../shared/providers/fdPaths';
+import type { ApiError } from '../shared/types';
+import { FOOTBALL_DATA_BASE } from '../shared/providers/footballData';
+import { checkFdPath } from '../shared/providers/fdPaths';
 
-interface Env {
-  FOOTBALL_DATA_API_KEY?: string;
-}
+import type { Env } from './env';
 
 const TIMEOUT_MS = 10_000;
 
@@ -20,7 +18,8 @@ function json(body: unknown, status = 200, extra: Record<string, string> = {}): 
 const error = (status: number, err: ApiError) =>
   json({ error: err }, status, err.retryAfterSeconds ? { 'retry-after': String(err.retryAfterSeconds) } : {});
 
-export const onRequestGet: PagesFunction<Env> = async ({ request, env, waitUntil }) => {
+export async function handleFd(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  const waitUntil = (p: Promise<unknown>) => ctx.waitUntil(p);
   const path = new URL(request.url).searchParams.get('path') ?? '';
   const check = checkFdPath(path);
   if (!check.ok) return error(400, { code: 'bad_request', message: check.reason });
@@ -68,4 +67,4 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env, waitUntil
     })),
   );
   return json({ data, retrievedAt, fromCache: false, endpoint: `GET ${FOOTBALL_DATA_BASE}${path}` });
-};
+}

@@ -12,21 +12,20 @@ See [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md) for which free data sources are
 2. A **football-data.org** API key: register at https://www.football-data.org/client/register. The key arrives by email.
 3. A **Cloudflare** account: https://dash.cloudflare.com/sign-up
 
-## Put the site online (Cloudflare Pages)
+## Put the site online (Cloudflare Workers)
 
-1. In Cloudflare, open **Workers & Pages**, click **Create**, choose the **Pages** tab, then **Connect to Git**.
-2. Pick the `football-predictions` repository.
-3. Build settings:
-   - Framework preset: **None**
+1. In Cloudflare, open **Compute (Workers)**, click **Create**, then **Import a repository** and pick `football-predictions`.
+2. Settings:
+   - Project name: `football-predictions`
    - Build command: `npm run build`
-   - Build output directory: `dist`
-4. Click **Save and Deploy**. Your site gets an address like `football-predictions.pages.dev`.
+   - Deploy command: `npx wrangler deploy`
+3. Click **Deploy**. Your site gets an address like `football-predictions.<your-name>.workers.dev`.
 
 ### Add your API key
 
-1. In Cloudflare, open your Pages project, then **Settings**, then **Variables and Secrets**.
-2. Add a variable named `FOOTBALL_DATA_API_KEY`, paste your key as the value, and choose **Encrypt**.
-3. Go to **Deployments** and click **Retry deployment** on the latest one so the key is picked up.
+1. In Cloudflare, open your Worker, then **Settings**, then **Variables and Secrets**.
+2. Click **Add**, choose type **Secret**, name it `FOOTBALL_DATA_API_KEY`, paste your key, and save.
+3. Reload the site. (If matches still don't show, go to **Deployments** and redeploy.)
 
 The key stays on Cloudflare's servers. It is never sent to visitors' browsers and must never be put in the code.
 
@@ -40,7 +39,7 @@ npm run dev:full                 # build + run site and API locally on http://lo
 ```
 
 - `src/`: React frontend (Vite, TypeScript, Tailwind).
-- `functions/api/`: Cloudflare Pages Functions (server side, holds the key, caches responses).
+- `worker/`: Cloudflare Worker (server side API, holds the key, caches responses, serves the built site).
 - `shared/`: normalized data types, time zone helpers, provider adapters.
 - `tests/`: Vitest unit tests.
 
@@ -48,7 +47,7 @@ Default time zone is `Africa/Casablanca`, taken from the runtime's time zone dat
 
 ### Changing or adding a provider
 
-Each provider has an adapter in `shared/providers/` that converts its data into the types in `shared/types.ts`. Add a new adapter there and call it from a function in `functions/api/`.
+Each provider has an adapter in `shared/providers/` that converts its data into the types in `shared/types.ts`. Add a new adapter there and call it from a handler in `worker/`.
 
 ## What is tested and what is not
 
